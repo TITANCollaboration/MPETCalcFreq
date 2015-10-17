@@ -28,6 +28,7 @@
 *.sql
 *.sqlite
 *.coverage
+.*.swp
 
 # OS generated files #
 ######################
