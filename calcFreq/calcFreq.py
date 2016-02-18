@@ -8,31 +8,20 @@ import re
 
 class calcFreq():
     def __init__(self):
-        #self.data = loadtxt("/home/mpet/Aaron/TitanMidasScripts/" +
-        #               "ElectronBindingData/NUBASE2012_formatted.dat",
-        #               usecols=[2, 3], dtype=object)
-        #f = open("/home/mpet/Aaron/TitanMidasScripts/" +
-        #         "ElectronBindingData/NUBASE2012_formatted.dat")
-        #f = open("data/NUBASE2012_formatted.dat")
+        ### Load the Mass Excess Data
         f = pkg_resources.resource_string(__name__,
                                           'data/NUBASE2012_formatted.dat')
         self.data = []
-        #for line in f:
         for line in f[:-1].split('\n'):
             temp = line.split()
             self.data.append([temp[2], float(temp[3])])
-        #f.close()
 
-        #f = open("/home/mpet/Aaron/TitanMidasScripts/" +
-        #         "ElectronBindingData/ElectronBindingEnergies.dat")
-        #f = open("data/ElectronBindingEnergies.dat")
+        ### Load the electron binding energies
         f = pkg_resources.resource_string(__name__,
                                           'data/ElectronBindingEnergies.dat')
         self.electronBE = []
-        #for line in f:
         for line in f[:-1].split('\n'):
             self.electronBE.append(map(float, line.split()))
-        #f.close()
 
         self.elemDict = {'H': 1,
                          'He': 2,
@@ -158,6 +147,8 @@ class calcFreq():
         self.amu = 931494.061
 
     def getReference(self):
+        '''Get the RF calibration from the ODB'''
+
         self.refname = Midas.varget("/Experiment/Variables/" +
                                     "MPET RF Calibration/Reference Ion")
         self.reffreq = float(Midas.varget("/Experiment/Variables/" +
@@ -171,22 +162,28 @@ class calcFreq():
                                                "FreqMinus (Hz)"))
 
     def BE(self, Z, q):
-        #result = sum(self.electronBE[Z-1, 0:q-1])/1000.
+        '''Sum the electron binding energies from neutral to the charge
+        state of the ion.'''
         Z = int(Z)
         q = int(q)
         result = sum(self.electronBE[Z - 1][:q]) / 1000.
         return result
 
     def splitInput(self, name):
+        '''Split the given string on any colons present.'''
         result = name.split(":")
         return result
 
     def getAtomicMass(self, name):
         # Get mass excess
+        # The first regex gets the A of the species, the second finds the
+        # element
         elem = re.findall('\\d+', name)[1] + re.search('\\D+', name).group(0)
-        #ME = float(self.data[self.data[:, 0]==elem][0, 1])
+
+        # Search the NUBASE data to find the element
         for tempelem in self.data:
             if tempelem[0] == elem:
+                # If a match, get the mass excess
                 ME = tempelem[1]
                 break
 
