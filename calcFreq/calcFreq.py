@@ -178,13 +178,16 @@ class calcFreq():
         # Get mass excess
         # The first regex gets the A of the species, the second finds the
         # element
-        elem = re.findall('\\d+', name)[1] + re.search('\\D+', name).group(0)
+        #elem = re.findall('\\d+', name)[1] + re.search('\\D+', name).group(0)
+        elem = re.findall('\\d+', name)[1] + "".join(re.findall('\\D+', name))
 
+        print elem
         # Search the NUBASE data to find the element
         for tempelem in self.data:
             if tempelem[0] == elem:
                 # If a match, get the mass excess
                 ME = tempelem[1]
+                print ME
                 break
 
         # Get mass number
@@ -198,11 +201,18 @@ class calcFreq():
         #                   [re.findall('\\D+', x) for x in names]))
         temp1 = [re.findall('\\d+', x) for x in names]
         temp2 = [re.findall('\\D+', x) for x in names]
+        print temp1
+        print temp2
         elemList = []
         for i in range(len(temp1)):
-            elemList.append([temp1[i][0], temp1[i][1], temp2[i][0]])
+            if len(temp2[i]) == 2 and len(temp2[i][0]) == 1:
+                temp2[i][1] = "x" + temp2[i][1]
+            if len(temp2[i]) == 1:
+                temp2[i].append("")
+            elemList.append([temp1[i][0], temp1[i][1],
+                             temp2[i][0], temp2[i][1]])
 
-        mass = [float(x[0]) * self.getAtomicMass(x[0] + x[2] + x[1])
+        mass = [float(x[0]) * self.getAtomicMass(x[0] + x[2] + x[1] + x[3])
                 for x in elemList]
         mass = sum(mass) - self.me * q
 
