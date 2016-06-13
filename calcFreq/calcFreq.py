@@ -11,7 +11,7 @@ class calcFreq():
         ### Load the Mass Excess Data
         f = pkg_resources.resource_string(__name__,
                                           'data/NUBASE2012_formatted.dat')
-        
+
         # Take the 3rd and 4th columns were the 3rd coumn is the element name
         # and the 4th column is the mass excess in keV.
         self.data = []
@@ -179,6 +179,7 @@ class calcFreq():
 
     def getAtomicMass(self, name):
         '''Get mass excess of the given element in the standard eva format'''
+
         # The first regex gets the A of the species, the second finds the
         # element
         #elem = re.findall('\\d+', name)[1] + re.search('\\D+', name).group(0)
@@ -199,15 +200,15 @@ class calcFreq():
     def getIonicMass(self, name, q):
         '''Take a eva formated element name and charge q,
         and return the mass of the ion in keV.
-        
+
         This also returns the ionic mass of isomers, if the
         isomer is listed in the AME.
         '''
         names = self.splitInput(name)
-        
+
         temp1 = [re.findall('\\d+', x) for x in names]
         temp2 = [re.findall('\\D+', x) for x in names]
-        
+
         elemList = []
         for i in range(len(temp1)):
             # If an isomer is present in the name, and if the element
@@ -219,7 +220,7 @@ class calcFreq():
                 temp2[i][1] = "x" + temp2[i][1]
             if len(temp2[i]) == 1:
                 temp2[i].append("")
-                
+
             elemList.append([temp1[i][0], temp1[i][1],
                              temp2[i][0], temp2[i][1]])
 
