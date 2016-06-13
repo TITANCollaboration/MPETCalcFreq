@@ -11,6 +11,9 @@ class calcFreq():
         ### Load the Mass Excess Data
         f = pkg_resources.resource_string(__name__,
                                           'data/NUBASE2012_formatted.dat')
+        
+        # Take the 3rd and 4th columns were the 3rd coumn is the element name
+        # and the 4th column is the mass excess in keV.
         self.data = []
         for line in f[:-1].split('\n'):
             temp = line.split()
@@ -175,19 +178,17 @@ class calcFreq():
         return result
 
     def getAtomicMass(self, name):
-        # Get mass excess
+        '''Get mass excess of the given element in the standard eva format'''
         # The first regex gets the A of the species, the second finds the
         # element
         #elem = re.findall('\\d+', name)[1] + re.search('\\D+', name).group(0)
         elem = re.findall('\\d+', name)[1] + "".join(re.findall('\\D+', name))
 
-        print elem
         # Search the NUBASE data to find the element
         for tempelem in self.data:
             if tempelem[0] == elem:
                 # If a match, get the mass excess
                 ME = tempelem[1]
-                print ME
                 break
 
         # Get mass number
@@ -196,19 +197,29 @@ class calcFreq():
         return (A * self.amu + ME)
 
     def getIonicMass(self, name, q):
+        '''Take a eva formated element name and charge q,
+        and return the mass of the ion in keV.
+        
+        This also returns the ionic mass of isomers, if the
+        isomer is listed in the AME.
+        '''
         names = self.splitInput(name)
-        #elemList = hstack(([re.findall('\\d+', x) for x in names],
-        #                   [re.findall('\\D+', x) for x in names]))
+        
         temp1 = [re.findall('\\d+', x) for x in names]
         temp2 = [re.findall('\\D+', x) for x in names]
-        print temp1
-        print temp2
+        
         elemList = []
         for i in range(len(temp1)):
+            # If an isomer is present in the name, and if the element
+            # name is 1 character (K, S, etc.), then prepend an 'x' to
+            # the isomer label. Needed for NUBASE file lookup.
+            # Otherwise, no isomer label is present, and append
+            # an empty string.
             if len(temp2[i]) == 2 and len(temp2[i][0]) == 1:
                 temp2[i][1] = "x" + temp2[i][1]
             if len(temp2[i]) == 1:
                 temp2[i].append("")
+                
             elemList.append([temp1[i][0], temp1[i][1],
                              temp2[i][0], temp2[i][1]])
 
