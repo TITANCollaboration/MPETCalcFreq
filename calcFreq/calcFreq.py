@@ -164,6 +164,12 @@ class calcFreq():
         self.refmagnetron = float(Midas.varget("/Experiment/Variables/" +
                                                "MPET RF Calibration/" +
                                                "FreqMinus (Hz)"))
+        try:
+            self.reffreqerr = float(Midas.varget("/Experiment/Variables/" +
+                                                 "MPET RF Calibration/" +
+                                                 "Reference Frequency Error"))
+        except:
+            self.reffreqerr = 0.0
 
     def BE(self, Z, q):
         '''Sum the electron binding energies from neutral to the charge
@@ -285,8 +291,10 @@ class calcFreq():
         parErrRef = (q * rmerr * self.reffreq / (self.refcharge * mass)) ** 2
         parErrInt = (q * refmass * merr * self.reffreq
                      / (self.refcharge * mass ** 2)) ** 2
+        parErrFreq = (q * refmass * self.reffreqerr
+                      / (self.refcharge * mass)) ** 2
 
-        return math.sqrt(parErrRef + parErrInt)
+        return math.sqrt(parErrRef + parErrInt + parErrFreq)
 
     def getFreqC(self, name, q):
         mass = self.getIonicMass(name, q)
