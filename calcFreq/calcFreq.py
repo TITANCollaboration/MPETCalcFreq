@@ -4,6 +4,7 @@
 import pythonmidas.pythonmidas as Midas
 import pkg_resources
 import re
+import math
 
 
 class calcFreq():
@@ -17,7 +18,7 @@ class calcFreq():
         self.data = []
         for line in f[:-1].split('\n'):
             temp = line.split()
-            self.data.append([temp[2], float(temp[3])])
+            self.data.append([temp[2], float(temp[3]), float(temp[4])])
 
         ### Load the electron binding energies
         f = pkg_resources.resource_string(__name__,
@@ -188,14 +189,15 @@ class calcFreq():
         # Search the NUBASE data to find the element
         for tempelem in self.data:
             if tempelem[0] == elem:
-                # If a match, get the mass excess
+                # If a match, get the mass excess and error
                 ME = tempelem[1]
+                MEerr = tempelem[2]
                 break
 
         # Get mass number
         A = float(re.findall('\\d+', name)[1])
 
-        return (A * self.amu + ME)
+        return ((A * self.amu + ME), MEerr)
 
     def getIonicMass(self, name, q):
         '''Take a eva formated element name and charge q,
@@ -224,9 +226,11 @@ class calcFreq():
             elemList.append([temp1[i][0], temp1[i][1],
                              temp2[i][0], temp2[i][1]])
 
-        mass = [float(x[0]) * self.getAtomicMass(x[0] + x[2] + x[1] + x[3])
+        mass = [float(x[0]) * self.getAtomicMass(x[0] + x[2] + x[1] + x[3])[0]
                 for x in elemList]
+        print mass
         mass = sum(mass) - self.me * q
+        print mass
 
         # Correct for the binding energy.
         # If ion is a molecule, perform no correction
@@ -235,6 +239,54 @@ class calcFreq():
             return mass
         else:
             return mass + self.BE(self.elemDict[elemList[0][2]], q)
+
+    def getIonicMassErr(self, name, q):
+        '''Take a eva formated element name and charge q,
+        and return the mass of the ion in keV.
+
+        This also returns the ionic mass of isomers, if the
+        isomer is listed in the AME.
+        '''
+        names = self.splitInput(name)
+
+        temp1 = [re.findall('\\d+', x) for x in names]
+        temp2 = [re.findall('\\D+', x) for x in names]
+
+        elemList = []
+        for i in range(len(temp1)):
+            # If an isomer is present in the name, and if the element
+            # name is 1 character (K, S, etc.), then prepend an 'x' to
+            # the isomer label. Needed for NUBASE file lookup.
+            # Otherwise, no isomer label is present, and append
+            # an empty string.
+            if len(temp2[i]) == 2 and len(temp2[i][0]) == 1:
+                temp2[i][1] = "x" + temp2[i][1]
+            if len(temp2[i]) == 1:
+                temp2[i].append("")
+
+            elemList.append([temp1[i][0], temp1[i][1],
+                             temp2[i][0], temp2[i][1]])
+
+        mass = [float(x[0]) * self.getAtomicMass(x[0] + x[2] + x[1] + x[3])[1]
+                for x in elemList]
+        print mass
+        mass = sum(mass)
+        print mass
+
+        return mass
+
+    def getFreqErr(self, name, q):
+        mass = self.getIonicMass(name, q)
+        merr = self.getIonicMassErr(name, q)
+        # freq = self.getFreqC(name, q)
+        refmass = self.getIonicMass(self.refname, self.refcharge)
+        rmerr = self.getIonicMassErr(self.refname, self.refcharge)
+
+        parErrRef = (q * rmerr * self.reffreq / (self.refcharge * mass)) ** 2
+        parErrInt = (q * refmass * merr * self.reffreq
+                     / (self.refcharge * mass ** 2)) ** 2
+
+        return math.sqrt(parErrRef + parErrInt)
 
     def getFreqC(self, name, q):
         mass = self.getIonicMass(name, q)
@@ -257,6 +309,11 @@ class calcFreq():
         names = self.parseInput(name)
         freqs = map(lambda x: func(x[0], float(x[1])), names)
         return freqs
+
+    def calc_freqerr(self, name):
+        names = self.parseInput(name)
+        freqerrs = map(lambda x: self.getFreqErr(x[0], float(x[1])), names)
+        return freqerrs
 
     def parseInput(self, name):
         """
